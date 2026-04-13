@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheetah Pro | PDF Generator</title>
+    
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #090a0f; 
+            --bg-deep: #12141d;
+            --card-dark: rgba(20, 24, 36, 0.7);
+            --primary-orange: #ff6a00; 
+            --accent-orange: #ff9100; 
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --glass-border: rgba(255, 106, 0, 0.15);
+            --green-installed: #10b981; 
+            --red-alert: #f43f5e; 
+            --blue-biz: #3b82f6;
+        }
+
+        * { font-family: 'Poppins', sans-serif; box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        body {
+            background: radial-gradient(circle at 10% 10%, rgba(255,106,0,0.08), transparent 40%),
+                        radial-gradient(circle at 90% 90%, rgba(59,130,246,0.05), transparent 40%),
+                        var(--bg-dark);
+            background-attachment: fixed; color: var(--text-main); margin: 0; padding: 40px 20px; min-height: 100vh;
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,106,0,0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-orange); }
+
+        .workspace {
+            background: var(--card-dark); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            width: 100%; max-width: 550px; padding: 40px; border-radius: 20px; 
+            border: 1px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); z-index: 10;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header { text-align: center; margin-bottom: 30px; }
+        h2 { margin: 0; font-weight: 800; font-size: 2rem; letter-spacing: 1px; }
+        h2 span { color: var(--primary-orange); }
+        .subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+
+        label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; margin-top: 15px;}
+
+        textarea.main-input, input.main-input, select.main-input { 
+            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255,255,255,0.1); 
+            padding: 14px; border-radius: 12px; color: white; margin-bottom: 5px; width: 100%; 
+            font-size: 0.9rem; transition: 0.3s;
+        }
+        textarea.main-input { height: 160px; resize: none; }
+        
+        textarea.main-input:focus, input.main-input:focus, select.main-input:focus {
+            outline: none; border-color: var(--primary-orange); box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.15); background: rgba(0, 0, 0, 0.6);
+        }
+        select.main-input option { background-color: var(--bg-deep); color: white; }
+        input[type="file"] { padding: 10px; font-size: 0.8rem; cursor: pointer; }
+
+        button.primary-btn { 
+            background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange)); 
+            padding: 16px; border-radius: 12px; border: none; font-weight: 800; color: white; 
+            cursor: pointer; width: 100%; box-shadow: 0 6px 20px rgba(255, 106, 0, 0.3);
+            text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px;
+        }
+        button.primary-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 106, 0, 0.5); }
+
+        #status { text-align: center; font-size: 0.85rem; font-weight: 600; margin-top: 15px; min-height: 20px; }
+
+        .upload-grid { display: flex; gap: 10px; margin-bottom: 10px;}
+        .upload-grid > div { flex: 1; }
+
+    </style>
+</head>
+<body>
+
+<div class="workspace">
+    <div class="header">
+        <h2>CHEETAH<span style="color:var(--primary-orange)">//</span>PRO</h2>
+        <div class="subtitle">PDF Auto-Filler</div>
+    </div>
+
+    <label>Agent Name (Auto-saves)</label>
+    <input type="text" id="agentNameInput" class="main-input" placeholder="Juan Dela Cruz" oninput="saveAgentName()">
+
+    <label>1. Select Provider</label>
+    <select id="templateSelect" class="main-input" style="cursor: pointer;">
+        <option value="bctv_blank.pdf">BCTV</option>
+        <option value="skyline_blank.pdf">Skyline</option>
+        <option value="kabayan_blank.pdf">Kabayan</option>
+    </select>
+
+    <label>2. Paste Client Data</label>
+    <textarea id="raw" class="main-input" placeholder="LAST NAME:\nFIRST NAME:\nMIDDLE NAME:\nMUNICIPALITY:\nPLAN:..."></textarea>
+
+    <div class="upload-grid">
+        <div>
+            <label>3. Sketch / Map</label>
+            <input type="file" id="sketchFile" accept="image/png, image/jpeg" class="main-input">
+        </div>
+        <div>
+            <label>4. Client Signature</label>
+            <input type="file" id="sigFile" accept="image/png, image/jpeg" class="main-input">
+        </div>
+    </div>
+
+    <button class="primary-btn" onclick="generatePDF()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Generate PDF Form
+    </button>
+    <div id="status"></div>
+</div>
+
+<script>
+    const { PDFDocument, rgb } = PDFLib;
+
+    // --- LOCAL STORAGE FOR AGENT NAME ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedAgent = localStorage.getItem('cheetahAgentName');
+        if (savedAgent) {
+            document.getElementById('agentNameInput').value = savedAgent;
+        }
+    });
+
+    function saveAgentName() {
+        const agentName = document.getElementById('agentNameInput').value;
+        localStorage.setItem('cheetahAgentName', agentName);
+    }
+
+    // --- DATA PARSER ---
+    function parseData(rawText) {
+        const lines = rawText.split('\n'); const data = {}; let currentKey = "";
+        for (let line of lines) {
+            line = line.trim(); if (!line || line.startsWith('(')) continue;
+            const colonIndex = line.indexOf(':');
+            if (colonIndex !== -1) {
+                currentKey = line.substring(0, colonIndex).trim().toUpperCase();
+                data[currentKey] = line.substring(colonIndex + 1).trim();
+            } else if (currentKey) {
+                data[currentKey] = data[currentKey] ? data[currentKey] + " " + line : line;
+            }
+        }
+        return data;
+    }
+
+    // --- MAIN PDF GENERATOR ---
+    async function generatePDF() {
+        const status = document.getElementById('status');
+        const rawText = document.getElementById('raw').value;
+        const selectedFile = document.getElementById('templateSelect').value;
+        const currentAgent = document.getElementById('agentNameInput').value || "AGENT";
+
+        if (!rawText) {
+            status.innerHTML = "⚠️ Awaiting client data."; status.style.color = "var(--red-alert)"; return;
+        }
+
+        status.innerHTML = "Fetching template & overlaying data..."; 
+        status.style.color = "var(--blue-biz)";
+
+        try {
+            // 1. FETCH BLANK PDF
+            const url = `./${selectedFile}`;
+            const existingPdfBytes = await fetch(url).then(res => {
+                if(!res.ok) throw new Error("Template not found! Check file name.");
+                return res.arrayBuffer();
+            });
+
+            const pdfDoc = await PDFDocument.load(existingPdfBytes);
+            const pages = pdfDoc.getPages();
+            const formPage = pages[0]; // Gets the first page
+            const { width, height } = formPage.getSize();
+
+            const clientData = parseData(rawText);
+            function get(key) { return (clientData[key.toUpperCase()] || "").toUpperCase(); }
+
+            // ========================================================
+            // 📌 COORDINATES (TRIAL AND ERROR MO ITO)
+            // Note: X is left-to-right. Y is BOTTOM-TO-TOP. 
+            // Kung height is 792 (standard short bond), Y: 700 is near the top.
+            // ========================================================
+            const textSize = 10;
+            const textColor = rgb(0, 0, 0); // Black
+
+            formPage.drawText(get("LAST NAME"), { x: 50, y: height - 120, size: textSize, color: textColor });
+            formPage.drawText(get("FIRST NAME"), { x: 250, y: height - 120, size: textSize, color: textColor });
+            formPage.drawText(get("MIDDLE NAME"), { x: 450, y: height - 120, size: textSize, color: textColor });
+            
+            formPage.drawText(get("HOUSE/BLOCK/UNIT NO.") + ' ' + get("STREET"), { x: 50, y: height - 150, size: textSize, color: textColor });
+            formPage.drawText(get("BARANGAY") + ', ' + get("MUNICIPALITY"), { x: 50, y: height - 180, size: textSize, color: textColor });
+            
+            // Draw Agent Name (Example: Ilagay natin sa taas kanan)
+            formPage.drawText(`AE: ${currentAgent.toUpperCase()}`, { x: width - 150, y: height - 50, size: textSize, color: textColor });
+            
+            // ... DAGDAGAN MO DITO YUNG IBANG FIELDS MO ...
+
+
+            // ========================================================
+            // 📌 INSERT SKETCH IMAGE
+            // ========================================================
+            const sketchInput = document.getElementById('sketchFile').files[0];
+            if (sketchInput) {
+                const sketchBytes = await sketchInput.arrayBuffer();
+                let sketchImage = sketchInput.type === 'image/jpeg' ? await pdfDoc.embedJpg(sketchBytes) : await pdfDoc.embedPng(sketchBytes);
+                
+                // Adjust x, y, width, height para sumakto sa box sa PDF niyo
+                formPage.drawImage(sketchImage, {
+                    x: 350,        
+                    y: 200,        
+                    width: 200,    
+                    height: 150    
+                });
+            }
+
+            // ========================================================
+            // 📌 INSERT SIGNATURE IMAGE
+            // ========================================================
+            const sigInput = document.getElementById('sigFile').files[0];
+            if (sigInput) {
+                const sigBytes = await sigInput.arrayBuffer();
+                let sigImage = sigInput.type === 'image/jpeg' ? await pdfDoc.embedJpg(sigBytes) : await pdfDoc.embedPng(sigBytes);
+
+                // Ilagay malapit sa ilalim kung saan usually yung sign
+                formPage.drawImage(sigImage, {
+                    x: 100,        
+                    y: 50,         
+                    width: 120,    
+                    height: 40     
+                });
+            }
+
+            // ========================================================
+            // 📌 SAVE AND DOWNLOAD
+            // ========================================================
+            const pdfBytes = await pdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            
+            const lName = get("LAST NAME") || "CLIENT";
+            const muni = get("MUNICIPALITY") || "AREA";
+            const providerName = selectedFile.split('_')[0].toUpperCase();
+            
+            saveAs(blob, `${providerName}_${lName}_${muni}.pdf`);
+
+            status.innerHTML = "✨ PDF Auto-Filled & Downloaded!"; 
+            status.style.color = "var(--green-installed)";
+
+        } catch (err) {
+            console.error(err);
+            status.innerHTML = "❌ Error: " + err.message; 
+            status.style.color = "var(--red-alert)";
+        }
+    }
+</script>
+
+</body>
+</html>
